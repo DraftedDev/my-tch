@@ -8,3 +8,7 @@ This is a simple single-file library for helping create PyTorch models quickly w
 It's heavily inspired by [Burn](https://burn.dev) and includes a TUI dashboard with fancy graphs and custom metrics.
 
 For a quickstart, look at the [Example](example.py).
+
+## License
+
+This project is licensed under the Unlicense - see the [LICENSE](LICENSE) file for details.
