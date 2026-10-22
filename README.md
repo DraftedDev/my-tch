@@ -9,6 +9,12 @@ It's heavily inspired by [Burn](https://burn.dev) and includes a TUI dashboard w
 
 For a quickstart, look at the [Example](example.py).
 
+## Required Packages
+
+- `torch`
+- `textual`
+- `textual_plotext`
+
 ## License
 
 This project is licensed under the Unlicense - see the [LICENSE](LICENSE) file for details.
