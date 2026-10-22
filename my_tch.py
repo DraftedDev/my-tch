@@ -17,26 +17,6 @@ from textual.widgets import Footer, Header, Log, Static, Tabs, Tab
 from textual_plotext import PlotextPlot
 
 
-class Module(abc.ABC, nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    @abc.abstractmethod
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        pass
-
-
-class Metric(abc.ABC):
-    @property
-    @abc.abstractmethod
-    def name(self) -> str:
-        pass
-
-    @abc.abstractmethod
-    def compute(self, outputs: torch.Tensor, targets: torch.Tensor) -> float:
-        pass
-
-
 class Config(abc.ABC):
     def __init__(self, path: str):
         self.path = path
@@ -58,6 +38,27 @@ class Config(abc.ABC):
 
     @abc.abstractmethod
     def set_defaults(self):
+        pass
+
+
+class Module(abc.ABC, nn.Module):
+    @abc.abstractmethod
+    def __init__(self, config: Config):
+        super().__init__()
+
+    @abc.abstractmethod
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        pass
+
+
+class Metric(abc.ABC):
+    @property
+    @abc.abstractmethod
+    def name(self) -> str:
+        pass
+
+    @abc.abstractmethod
+    def compute(self, outputs: torch.Tensor, targets: torch.Tensor) -> float:
         pass
 
 

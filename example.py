@@ -35,8 +35,8 @@ class MNISTDatasetFetcher(DatasetFetcher):
 
 
 class MNISTModel(Module):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config: Config):
+        super().__init__(config)
         self.flatten = nn.Flatten()
         self.net = nn.Sequential(
             nn.Linear(28 * 28, 128),
@@ -49,8 +49,8 @@ class MNISTModel(Module):
         return self.net(x)
 
 
-mod = MNISTModel()
 config = ModelConfig(path="config.json")
+mod = MNISTModel(config)
 
 run(
     model=mod,
