@@ -3,7 +3,7 @@ import torchvision.transforms as transforms
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from my_tch import Config, DatasetFetcher, Module, run, DataLoader, Accuracy, ErrorRate, Confidence
+from my_tch import Config, DataFetcher, Module, run, DataLoader, Accuracy, ErrorRate, Confidence
 
 
 class ModelConfig(Config):
@@ -22,13 +22,19 @@ class ModelConfig(Config):
         return {"lr": self.lr, "epochs": self.epochs}
 
 
-class MNISTDatasetFetcher(DatasetFetcher):
-    def get_train_loader(self, arg: str) -> DataLoader:
+class MNISTDataFetcher(DataFetcher):
+    def load(self, arg: str) -> torch.Tensor:
+        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
+        testset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+        img, _ = testset[int(arg)]
+        return img.unsqueeze(0)
+
+    def load_training(self, arg: str) -> DataLoader:
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
         trainset = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transform)
         return DataLoader(trainset, batch_size=64, shuffle=True)
 
-    def get_test_loader(self, arg: str) -> DataLoader:
+    def load_testing(self, arg: str) -> DataLoader:
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
         testset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform)
         return DataLoader(testset, batch_size=64, shuffle=False)
@@ -48,15 +54,21 @@ class MNISTModel(Module):
         x = self.flatten(x)
         return self.net(x)
 
+    def print(self, output: torch.Tensor):
+        probs = torch.softmax(output, dim=1)
+        pred_class = output.argmax(dim=1).item()
+        confidence = probs[0, pred_class].item()
+        print(f"Inference Results -> Predicted Digit: {pred_class}, Confidence: {confidence:.4f}")
 
-config = ModelConfig(path="config.json")
-mod = MNISTModel(config)
+
+cfg = ModelConfig(path="config.json")
+mod = MNISTModel(cfg)
 
 run(
     model=mod,
-    dataset_fetcher=MNISTDatasetFetcher(),
-    optimizer=optim.Adam(mod.parameters(), lr=config.lr),
+    fetcher=MNISTDataFetcher(),
+    optimizer=optim.Adam(mod.parameters(), lr=cfg.lr),
     criterion=nn.CrossEntropyLoss(),
     metrics=[Accuracy(), ErrorRate(), Confidence()],
-    epochs=config.epochs
+    epochs=cfg.epochs
 )

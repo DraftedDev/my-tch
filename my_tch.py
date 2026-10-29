@@ -43,11 +43,15 @@ class Config(abc.ABC):
 
 class Module(abc.ABC, nn.Module):
     @abc.abstractmethod
-    def __init__(self, config: Config):
+    def __init__(self, _: Config):
         super().__init__()
 
     @abc.abstractmethod
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        pass
+
+    @abc.abstractmethod
+    def print(self, output: torch.Tensor):
         pass
 
 
@@ -62,13 +66,17 @@ class Metric(abc.ABC):
         pass
 
 
-class DatasetFetcher(abc.ABC):
+class DataFetcher(abc.ABC):
     @abc.abstractmethod
-    def get_train_loader(self, arg: str) -> DataLoader:
+    def load(self, arg: str) -> torch.Tensor:
         pass
 
     @abc.abstractmethod
-    def get_test_loader(self, arg: str) -> DataLoader:
+    def load_training(self, arg: str) -> DataLoader:
+        pass
+
+    @abc.abstractmethod
+    def load_testing(self, arg: str) -> DataLoader:
         pass
 
 
@@ -232,12 +240,13 @@ class TrainingDashboard(App):
 
             for i, (inputs, targets) in enumerate(self.train_loader):
                 self.optimizer.zero_grad()
-                outputs = self.model(inputs)
+                outputs = self.model.forward(inputs)
                 loss = self.criterion(outputs, targets)
                 loss.backward()
                 self.optimizer.step()
 
                 running_loss += loss.item()
+
                 for m in self.metrics:
                     metric_accumulators[m.name] += m.compute(outputs, targets)
                 batch_count += 1
@@ -322,7 +331,7 @@ class TrainingDashboard(App):
         self.exit()
 
 
-def run(model: Module, dataset_fetcher: DatasetFetcher, optimizer: optim.Optimizer, criterion,
+def run(model: Module, fetcher: DataFetcher, optimizer: optim.Optimizer, criterion,
         metrics: list[Metric], epochs: int, checkpoint_path: str = "checkpoints/my-checkpoint.pth"):
     logging.basicConfig(level=logging.INFO)
 
@@ -331,13 +340,13 @@ def run(model: Module, dataset_fetcher: DatasetFetcher, optimizer: optim.Optimiz
         return
 
     sub = sys.argv[1]
-    dataset_arg = sys.argv[2] if len(sys.argv) > 2 else "default"
+    arg = sys.argv[2] if len(sys.argv) > 2 else "default"
 
     if os.path.exists(checkpoint_path):
         model.load_state_dict(torch.load(checkpoint_path))
 
     if sub == 'train':
-        trainloader = dataset_fetcher.get_train_loader(dataset_arg)
+        trainloader = fetcher.load_training(arg)
 
         app = TrainingDashboard(
             model=model,
@@ -350,7 +359,7 @@ def run(model: Module, dataset_fetcher: DatasetFetcher, optimizer: optim.Optimiz
         app.run()
 
     elif sub == 'eval':
-        testloader = dataset_fetcher.get_test_loader(dataset_arg)
+        testloader = fetcher.load_testing(arg)
         model.eval()
         total_loss = 0.0
         correct = 0
@@ -358,7 +367,7 @@ def run(model: Module, dataset_fetcher: DatasetFetcher, optimizer: optim.Optimiz
 
         with torch.no_grad():
             for inputs, targets in testloader:
-                outputs = model(inputs)
+                outputs = model.foward(inputs)
                 loss = criterion(outputs, targets)
                 total_loss += loss.item() * inputs.size(0)
                 preds = outputs.argmax(dim=1)
@@ -372,12 +381,9 @@ def run(model: Module, dataset_fetcher: DatasetFetcher, optimizer: optim.Optimiz
     elif sub == 'infer':
         model.eval()
         with torch.no_grad():
-            sample_input = torch.randn(1, 1, 28, 28)
-            output = model(sample_input)
-            probs = torch.softmax(output, dim=1)
-            pred_class = output.argmax(dim=1).item()
-            confidence = probs[0, pred_class].item()
-            print(f"Inference -> Predicted Class: {pred_class}, Confidence: {confidence:.4f}")
+            input_data = fetcher.load(arg)
+            output = model.forward(input_data)
+            model.print(output)
 
     else:
         print("Unknown subcommand. Use 'train', 'eval', or 'infer'.")

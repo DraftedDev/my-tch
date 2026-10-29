@@ -17,4 +17,4 @@ For a quickstart, look at the [Example](example.py).
 
 ## License
 
-This project is licensed under the Unlicense - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Unlicense - see the [LICENSE](LICENSE.txt) file for details.
